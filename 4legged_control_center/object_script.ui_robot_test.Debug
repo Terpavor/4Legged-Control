@@ -1,0 +1,12 @@
+INPUT(
+./debug\main.o
+./debug\mainwindow.o
+./debug\simple_robot_protocol.o
+./debug\tcp_client.o
+./debug\keyboard_arrows_input.o
+./debug\settings.o
+./debug\moc_mainwindow.o
+./debug\moc_tcp_client.o
+./debug\moc_keyboard_arrows_input.o
+./debug\moc_settings.o
+);

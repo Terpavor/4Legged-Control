@@ -1,0 +1,12 @@
+INPUT(
+./release\main.o
+./release\mainwindow.o
+./release\simple_robot_protocol.o
+./release\tcp_client.o
+./release\keyboard_arrows_input.o
+./release\settings.o
+./release\moc_mainwindow.o
+./release\moc_tcp_client.o
+./release\moc_keyboard_arrows_input.o
+./release\moc_settings.o
+);
