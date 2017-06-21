@@ -51,8 +51,6 @@ struct Servo
 	uint16_t pot2Tick();
 	
 	// degrees -> ...
-	//uint16_t deg2Tick(uint8_t value_deg);
-	//uint16_t deg2Pot(uint8_t value_deg);
 	uint16_t deg2Tick(float value_deg);
 	uint16_t deg2Pot(float value_deg);
 

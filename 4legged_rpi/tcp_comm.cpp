@@ -70,46 +70,6 @@ void TcpCommunication::readData()
 
 	// do something
 
-	/*QDataStream in(socket);
-	in.setVersion(QDataStream::Qt_5_3);
-
-	qDebug() << "block_size = " << block_size;
-	if (block_size == 0)
-	{
-		qDebug() << "socket->bytesAvailable() = " << socket->bytesAvailable();
-		// Relies on the fact that QDataStream format streams a quint32 into sizeof(quint32) bytes
-		if (socket->bytesAvailable() < (int)(sizeof(quint32) + sizeof(quint8)))
-		{
-			qDebug() << "RET1";
-			return;
-		}
-		in >> block_size; // 4 bytes
-		in >> packet_type; // 1 byte
-		qDebug() << "new block_size = " << block_size;
-	}
-
-	if (socket->bytesAvailable() < block_size || in.atEnd())
-	{
-		qDebug() << "RET2" << socket->bytesAvailable() << " " << block_size;
-		return;
-	}
-
-	QByteArray block;
-	//in >> block;
-	char *temp = new char[block_size];
-	quint32 bytes_read = in.readRawData(temp, block_size);
-	block.append(temp, bytes_read);
-	delete [] temp;
-
-
-	qDebug() << block.toHex();
-
-	block_size -= bytes_read;
-
-
-	//QByteArray buffer = socket->readLine();
-	//qDebug() << buffer;*/
-
 	sendData();
 }
 void TcpCommunication::sendData()
@@ -122,42 +82,14 @@ void TcpCommunication::sendData()
 	packet_telemetry_out.timestamp[0] = QDateTime::currentDateTime().toMSecsSinceEpoch();
 	packet_telemetry_out.write(socket);
 
-	//QDateTime datetime = datetime.currentDateTime();
-	//packet_log_out.message = datetime.toString("dd.MM.yyyy hh:mm:ss.zzz") +
-	//		" | Onboard Computer | INFO | I'm alive";
-	//packet_log_out.write(socket);
+	QDateTime datetime = datetime.currentDateTime();
+	packet_log_out.message = datetime.toString("dd.MM.yyyy hh:mm:ss.zzz") +
+			" | Onboard Computer | INFO | I'm alive";
+	packet_log_out.write(socket);
 
 
 	QTimer::singleShot(2000, this, SLOT(sendData()));
 
-	/*
-	QDataStream out(&block, QIODevice::WriteOnly);
-	out.setVersion(QDataStream::Qt_5_3);
-
-	static bool i = 0;
-
-
-	//socket->write("some telemetry for command center\n");
-	//socket->flush();
-
-	//socket->write(block);
-
-	out << (quint32)0;
-	out << (quint8)0;
-	out << i;
-	i++;
-	out.device()->seek(0);
-	out << (quint32)(block.size() - sizeof(quint32) - sizeof(quint8));
-
-	socket->write(block);
-	socket->flush();
-
-
-	qDebug() << "SEND DATA " << block.toHex();
-
-	//socket->write( QStringLiteral("some command for robot %1").arg(i++).toStdString().c_str() );
-	//socket->flush();
-	*/
 }
 
 void TcpCommunication::createNewConnection()

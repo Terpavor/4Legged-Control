@@ -5,25 +5,6 @@
 #include <avr/io.h>			// avr/iom2560.h - ADC register
 
 
-template<typename T> T median3(T arr[3])
-{
-	if(arr[0] < arr[1])
-	{
-		if(arr[0] >= arr[2])
-			return arr[0];
-		else if(arr[1] < arr[2])
-			return arr[1];
-	}
-	else
-	{
-		if(arr[0] < arr[2])
-			return arr[0];
-		else if(arr[1] >= arr[2])
-			return arr[1];
-	}
-	return arr[2];
-}
-
 template<uint8_t channel_count>
 class AdcControl
 {
@@ -31,9 +12,6 @@ private:
 	uint8_t channel_i;
 	uint16_t result[channel_count];
 
-
-	//uint16_t filter_buffer[3];
-	//uint8_t filter_i = 0;
 	
 	volatile bool completed;
 	// uint8_t	channel_count - remember about template parameter
@@ -120,7 +98,6 @@ TMPL inline void A_C::startSeries()
 {
 	adcStop();	
 	channel_i = 0;
-	// filter_i = 0;
 	selectChannel(0);
 	adcStart();
 }
@@ -135,38 +112,9 @@ TMPL inline void A_C::complete_handler()
 	}
 	else
 	{
-		//adc_time = TCNT1;
-		//adc_flag = true;
 		completed = true;
 		adcStop();
 	}
-	/*
-	// adc_samples_filled = adc_filter.addSample(adc_value);
-	filter_buffer[filter_i++] = ADC;
-	if(filter_i >= 3)
-	{
-		filter_i = 0;
-		
-		result[channel_i++] = median3(filter_buffer);
-		
-		if(channel_i < channel_count)
-		{
-			selectChannel(channel_i);
-			adcStart();
-		}
-		else
-		{
-			adc_time = TCNT1;
-			adc_flag = true;
-			completed = true;
-			adcStop();
-		}
-	}
-	else
-	{
-		adcStart();
-	}
-	*/
 }
 
 

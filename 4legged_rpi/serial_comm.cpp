@@ -35,31 +35,7 @@ void SerialCommunication::openSerialPort()
     if (is_open)
     {
 
-    }
-
-    /*
-    SettingsDialog::Settings p = settings->settings();
-    serial->setPortName(p.name);
-    serial->setBaudRate(p.baudRate);
-    serial->setDataBits(p.dataBits);
-    serial->setParity(p.parity);
-    serial->setStopBits(p.stopBits);
-    serial->setFlowControl(p.flowControl);
-    if (serial->open(QIODevice::ReadWrite)) {
-        console->setEnabled(true);
-        console->setLocalEchoEnabled(p.localEchoEnabled);
-        ui->actionConnect->setEnabled(false);
-        ui->actionDisconnect->setEnabled(true);
-        ui->actionConfigure->setEnabled(false);
-        showStatusMessage(tr("Connected to %1 : %2, %3, %4, %5, %6")
-                          .arg(p.name).arg(p.stringBaudRate).arg(p.stringDataBits)
-                          .arg(p.stringParity).arg(p.stringStopBits).arg(p.stringFlowControl));
-    } else {
-        QMessageBox::critical(this, tr("Error"), serial->errorString());
-
-        showStatusMessage(tr("Open error"));
-    }
-    */
+	}
 }
 
 
@@ -92,53 +68,7 @@ void SerialCommunication::readData()
     foreach(const QString &str, str_list)
         emit dataSeparated(str);
 
-    qDebug("end");
-
-
-
-#if 0
-
-
-    static QByteArray ba, ba2;
-    QStringList str_list;
-    ba.append( serial->readAll() );
-
-    int i = 0, str_start = 0, str_end = 0;
-
-
-
-    bool got_eol = false;
-    for(int i = 0, j = 0; i < ba.length(); i++)
-    {
-        if(ba[i]=='\r' || ba[i]=='\n')
-        {
-            str_list = ba.mid(j,i-j);
-            ++i;
-            if(ba[i+1]=='\r' || ba[i+1]=='\n')
-            {
-
-            }
-            j = i;
-        }
-        else if(got_eol)
-        {
-
-            qDebug() << "before:" << ba;
-            ba.remove(0, i);
-            qDebug() << "after:" << ba << endl;
-
-
-            qDebug() << ba2 << endl;
-        }
-    }
-
-    return;
-
-    char buffer[1024];
-    qint64 lineLength = serial->readLine(buffer, sizeof(buffer));
-    qDebug()  << buffer << endl;
-
-#endif
+	qDebug("end");
 }
 
 

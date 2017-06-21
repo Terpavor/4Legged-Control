@@ -45,10 +45,6 @@ void Servo::setPositionInTick(uint16_t new_position)
 {
 	tick = checkPositionInTick(new_position);
 }
-/*void Servo::setPositionInDeg(uint8_t new_position)
-{
-	setPositionInTick( deg2Tick(new_position) );
-}*/
 void Servo::setPositionInDeg(float new_position)
 {
 	if(new_position >= 0)
@@ -122,20 +118,6 @@ uint16_t Servo::pot2Tick()
 }
 
 // degrees -> ...
-/*
-uint16_t Servo::deg2Tick(uint8_t  value_deg)
-{
-	// map [0, deg_range] to [tick_min, tick_max]
-	//return uint32_t(value_deg) * (tick_max - tick_min) / deg_range + tick_min;
-	return mapValue(value_deg,  0, deg_range,  tick_min, tick_max);
-}
-uint16_t Servo::deg2Pot(uint8_t  value_deg)
-{
-	// map [0, deg_range] to [pot_min, pot_max]
-	//return uint32_t(value_deg) * (pot_max - pot_min) / deg_range + pot_min;
-	return mapValue(value_deg,  0, deg_range,  pot_min, pot_max);
-}
-*/
 uint16_t Servo::deg2Tick(float value_deg)
 {
 	// map [0, deg_range] to [tick_min, tick_max]

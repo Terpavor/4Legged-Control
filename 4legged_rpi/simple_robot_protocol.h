@@ -1,11 +1,9 @@
 #ifndef SIMPLE_ROBOT_PROTOCOL_H
 #define SIMPLE_ROBOT_PROTOCOL_H
 
-//#include <QtGlobal>		// ?
 #include <QAbstractSocket>	// used in Packet::write() and constructReceivedPacket();
 #include <QDataStream>		// used everywhere
 #include <QSharedPointer>	// used in constructReceivedPacket();
-//#include <type_traits>	// ?
 
 
 struct Packet

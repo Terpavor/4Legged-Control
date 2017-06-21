@@ -8,7 +8,6 @@
 #include <avr/pgmspace.h>	// PROGMEM, ...
 #include <util/delay.h>		// _delay_ms()
 
-// TODO избавиться от этого
 volatile bool update_flag = false;
 
 #define MPU6050_DMP_FIFO_RATE_DIVISOR		FIFO_RATE_50HZ
@@ -24,6 +23,8 @@ extern "C"
 {
 	#include "uart.h"
 }
+
+
 
 
 #ifdef DEBUG
@@ -54,10 +55,25 @@ do{ 																\
 #endif
 
 
+
+
 void initPorts();
 void initTimer1();
 void initTimer2();
 void initADC();
+
+
+
+
+// class default I2C address is 0x68
+MPU6050 mpu;
+
+
+
+
+
+
+
 
 const uint8_t leg_count = 1;
 TouchSensor leg_sensor[leg_count]
@@ -80,6 +96,64 @@ using AdcT = decltype(adc_controller); // as typedef
 
 ServoControl<servo_count, servos, AdcT, adc_controller> servo_controller;
 using ServoT = decltype(servo_controller);
+
+Input<ServoT, servo_controller> input;
+
+
+
+
+// MPU control/status vars
+uint8_t fifoBuffer[42]; // FIFO storage buffer
+
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+VectorInt16 aa;         // [x, y, z]            accel sensor measurements
+VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
+VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
+VectorFloat gravity;    // [x, y, z]            gravity vector
+float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+bool send_serial_packet_flag;
+
+uint8_t mpuInit(MPU6050 &m, int16_t x_a_offset,	int16_t y_a_offset,	int16_t z_a_offset,
+							int16_t x_g_offset,	int16_t y_g_offset, int16_t z_g_offset);
+void mpuProcess(MPU6050&);
+void initExternalInterrupts();
+
+class Output
+{
+	// structure:
+	// servo position:				[float degrees]	from [uint16_t adc_value]	x12
+	// battery voltage:				[float volts]	from [uint16_t adc_value]	x2
+	// ground contact:				[bool]										x4
+	// angles:						[Quaternion] which is [float x4]			x1
+	// real accel in global CS:		[VectorFloat] which is [float x3]			x1
+	// gravity vector:				[VectorFloat] which is [float x3]			x1
+	
+	// we need definitely known packet size for binary protocol and we can use packing for this.
+	// __attribute__ ((packed)) gives warning about impossibility of packing non-POD VectorFloat and Quaternion.
+	// #pragma pack doesn't. (but i don't know if it works or not)
+	// in general, it does not matter, as long as we use 8 bit uC...
+	struct SerialPacket
+	{
+		float servo_position[servo_count];
+		float battery_voltage[battery_count];
+		bool ground_contact[leg_count];
+		Quaternion orientation;
+		VectorFloat acceleration;
+		VectorFloat gravity;
+	} packet;
+	public:
+	Output();
+	
+	void updateValues();
+
+	void sendAsText();
+	void sendAsBinary();
+	void sendAsBinaryOverText();
+};
+
+
 
 ISR(ADC_vect) // 50 Hz, 18 kHz
 {
@@ -105,102 +179,6 @@ ISR(INT2_vect) // 50 Hz
 	mpu_interrupt_flag = true;
 }
 
-// class default I2C address is 0x68
-MPU6050 mpu;
-
-//#define OUTPUT_READABLE_QUATERNION
-#define OUTPUT_READABLE_YAWPITCHROLL
-#define OUTPUT_READABLE_REALACCEL
-//#define OUTPUT_READABLE_WORLDACCEL
-
-
-#pragma region "variables, debug print"
-// MPU control/status vars
-uint8_t fifoBuffer[42]; // FIFO storage buffer
-
-// orientation/motion vars
-Quaternion q;           // [w, x, y, z]         quaternion container
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
-VectorFloat gravity;    // [x, y, z]            gravity vector
-float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-
-uint8_t mpuInit(MPU6050 &m, int16_t x_a_offset,	int16_t y_a_offset,	int16_t z_a_offset,
-							int16_t x_g_offset,	int16_t y_g_offset, int16_t z_g_offset);
-void mpuProcess(MPU6050&);
-void initExternalInterrupts();
-
-
-
-void printRangeAndCalibration();
-void printRangeAndCalibration()
-{
-	return;
-	DEBUG_PRINTF_P("FS_SEL       = %d\n", mpu.getFullScaleGyroRange());
-	DEBUG_PRINTF_P("AFS_SEL      = %d\n", mpu.getFullScaleAccelRange());
-	DEBUG_PRINTF_P("XG_OFFS_TC   = %d\n", mpu.getXGyroOffsetTC());
-	DEBUG_PRINTF_P("YG_OFFS_TC   = %d\n", mpu.getYGyroOffsetTC());
-	DEBUG_PRINTF_P("ZG_OFFS_TC   = %d\n", mpu.getZGyroOffsetTC());
-	DEBUG_PRINTF_P("X_FINE_GAIN  = %d\n", mpu.getXFineGain());
-	DEBUG_PRINTF_P("Y_FINE_GAIN  = %d\n", mpu.getYFineGain());
-	DEBUG_PRINTF_P("Z_FINE_GAIN  = %d\n", mpu.getZFineGain());
-	DEBUG_PRINTF_P("XA_OFFS_*    = %d\n", mpu.getXAccelOffset());
-	DEBUG_PRINTF_P("YA_OFFS_*    = %d\n", mpu.getYAccelOffset());
-	DEBUG_PRINTF_P("ZA_OFFS_*    = %d\n", mpu.getZAccelOffset());
-	DEBUG_PRINTF_P("XG_OFFS_USR* = %d\n", mpu.getXGyroOffset());
-	DEBUG_PRINTF_P("YG_OFFS_USR* = %d\n", mpu.getYGyroOffset());
-	DEBUG_PRINTF_P("ZG_OFFS_USR* = %d\n", mpu.getZGyroOffset());
-}
-
-
-#pragma endregion
-
-
-
-
-bool send_serial_packet_flag;
-
-
-class Output
-{
-	// structure:
-	// servo position:				[float degrees]	from [uint16_t adc_value]	x12
-	// battery voltage:				[float volts]	from [uint16_t adc_value]	x2
-	// ground contact:				[bool]										x4
-	// angles:						[Quaternion] which is [float x4]			x1
-	// real accel in global CS:		[VectorFloat] which is [float x3]			x1
-	// gravity vector:				[VectorFloat] which is [float x3]			x1
-	
-	// we need definitely known packet size for binary protocol and we can use packing for this.
-	// __attribute__ ((packed)) gives warning about impossibility of packing non-POD VectorFloat and Quaternion.
-	// #pragma pack doesn't. (but i don't know if it works or not)
-	// in general, it does not matter, as long as we use 8 bit uC...
-	struct SerialPacket
-	{
-		float servo_position[servo_count];
-		float battery_voltage[battery_count];
-		bool ground_contact[leg_count];
-		Quaternion orientation;
-		VectorFloat acceleration;
-		VectorFloat gravity;
-	} packet;
-public:
-	Output();
-	
-	void updateValues();
-
-	void sendAsText();
-	void sendAsBinary();
-	void sendAsBinaryOverText();
-};
-
-
-
-
-Input<ServoT, servo_controller> input;
-
 int main(void)
 {
 	adc_controller.startSeries();
@@ -224,27 +202,8 @@ int main(void)
 		DEBUG_PRINT_P("MPU6050 programming failed\n");
 		for(;;);
 	}
-
-	//servo_controller.update(); // get ADC result
-	//servo_controller.toCurrentPosition(0); // and move
-
-	
-	//servo_controller.tickCalibrate(0, servos[0].tick_min+200, servos[0].tick_max-200);
-	//for(;;);
-	
-	DEBUG_PRINT_P("----\n");
-	DEBUG_PRINTF_P("prescaler %u\tdeg %u\tport %u\tbitmap %#x\n",servos[0].timer_prescaler, servos[0].deg_range, servos[0].port_reg, servos[0].pin_bitmap);
-	DEBUG_PRINTF_P("tick_min %u\ttick_max %u\ttick %u\n",	servos[0].tick_min, servos[0].tick_max, servos[0].tick);
-	DEBUG_PRINTF_P("pot_min %u\tpot_max %u\tpot %u\n",	servos[0].pot_min, servos[0].pot_max, servos[0].pot);
-	DEBUG_PRINT_P("----\n");
-	
-	DEBUG_PRINTF_P("[%u\t%u][%u\t%u]\t[%u\t%u]\n",
-			servos[0].pot, servos[1].pot, servos[0].tick, servos[1].tick, servos[0].tick2Deg(), servos[1].tick2Deg());
 	
 	
-	servo_controller.set()[0] = servo_controller.getServo()[0].deg2Tick(30);
-	servo_controller.set()[1] = servo_controller.getServo()[1].deg2Tick(60);
-
 	for(;;)
 	{
 		if(uart_string_available())
@@ -252,18 +211,6 @@ int main(void)
 			input.parse();
 			send_serial_packet_flag = true;
 		}
-		
-		
-		//if(adc_flag)
-		{
-			//DEBUG_PRINTF_P("[%u\t%u][%u\t%u]\t[%u\t%u]\n",
-			//	servos[0].pot, servos[1].pot, servos[0].tick, servos[1].tick, servos[0].tick2Deg(), servos[1].tick2Deg());
-			//adc_flag = false;
-		}
-		
-		//int tmp = freeRam();
-		//DEBUG_PRINTF_P("!%d\n", tmp);
-		//DEBUG_PRINTF_P("tcnt=%hu\tocra=%hu\tocrb=%hu\ts1=%hu\n", TCNT1, OCR1A, OCR1B, servo_controller.servo_sorted[0]->tick);
 		
 		if(send_serial_packet_flag)
 		{
@@ -274,14 +221,6 @@ int main(void)
 		
 		if(update_flag)
 		{
-			//if(servo_controller.get()[0] < dest)
-			//servo_controller.set()[0]++;
-			//else if(servo_controller.get()[0] > dest)
-			//servo_controller.set()[0]--;
-
-			//DEBUG_PRINTF_P("[%u\t%u]\n",servos[0].tick2Deg(), servos[1].tick2Deg());
-			
-
 			servo_controller.update();
 			update_flag = false;
 		}
@@ -357,8 +296,6 @@ uint8_t mpuInit(MPU6050 &m, int16_t x_a_offset,	int16_t y_a_offset,	int16_t z_a_
 		DEBUG_PRINT("MPU6050 connection successful\n");
 	else
 		DEBUG_PRINT("MPU6050 connection failed\n");
-
-	printRangeAndCalibration();
 	
 
 	
@@ -369,17 +306,13 @@ uint8_t mpuInit(MPU6050 &m, int16_t x_a_offset,	int16_t y_a_offset,	int16_t z_a_
 	uint8_t dmp_status = m.dmpInitialize();
 
 
-	printRangeAndCalibration();
-
 	//offsets
-	m.setXAccelOffset(-1012);
-	m.setYAccelOffset(-227);
-	m.setZAccelOffset(+352); // 2^14 = 16384
-	m.setXGyroOffset(+340/4);
-	m.setYGyroOffset(-113/4);
-	m.setZGyroOffset(+31/4);
-
-	printRangeAndCalibration();
+	m.setXAccelOffset(x_a_offset);
+	m.setYAccelOffset(y_a_offset);
+	m.setZAccelOffset(z_a_offset);
+	m.setXGyroOffset(x_g_offset);
+	m.setYGyroOffset(y_g_offset);
+	m.setZGyroOffset(z_g_offset);
 
 	// make sure it worked (returns 0 if so)
 	if (dmp_status == 0)
@@ -391,9 +324,6 @@ uint8_t mpuInit(MPU6050 &m, int16_t x_a_offset,	int16_t y_a_offset,	int16_t z_a_
 		// enable Arduino interrupt detection
 		DEBUG_PRINT("Enabling interrupt detection (Arduino external interrupt 0)...\n");
 		//mpuIntStatus = mpu.getIntStatus();
-		
-		
-		printRangeAndCalibration();
 		
 		// set our DMP Ready flag so the main loop() function knows it's okay to use it
 		DEBUG_PRINT("DMP ready! Waiting for first interrupt...\n");
@@ -414,7 +344,7 @@ void mpuProcess(MPU6050 &m)
 	
 	if(mpu_int_status & (1 << MPU6050_INTERRUPT_FIFO_OFLOW_BIT))
 	// || fifoCount >= MPU6050_FIFO_SIZE // unnecessary check?
-	// || fifoCount % mpu.dmpPacketSize != 0 // - something strange happened
+	// || fifoCount % mpu.dmpPacketSize != 0 // - if something strange happened
 	{
 		m.resetFIFO();
 		return;
@@ -487,25 +417,7 @@ void mpuProcess(MPU6050 &m)
 	PRINTF("%d",aaWorld.y);
 	PRINTF("\t");
 	PRINTFLN("%d",aaWorld.z);
-	#endif
-	
-	#ifdef OUTPUT_TEAPOT
-	// display quaternion values in InvenSense Teapot demo format:
-	teapotPacket[2] = fifoBuffer[0];
-	teapotPacket[3] = fifoBuffer[1];
-	teapotPacket[4] = fifoBuffer[4];
-	teapotPacket[5] = fifoBuffer[5];
-	teapotPacket[6] = fifoBuffer[8];
-	teapotPacket[7] = fifoBuffer[9];
-	teapotPacket[8] = fifoBuffer[12];
-	teapotPacket[9] = fifoBuffer[13];
-	for(uint8_t i = 0; i<14;i++)
-	{
-		uart_putc(teapotPacket[i]);
-	}
-	teapotPacket[11]++; // packetCount, loops at 0xFF on purpose
-	#endif
-	
+	#endif	
 }
 
 

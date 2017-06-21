@@ -13,9 +13,6 @@ TcpClient::TcpClient(const char address[], uint16_t port_number)
 	connect( socket, &QTcpSocket::readyRead,
 			 this,	 &TcpClient::readData );
 
-	//connect( socket, &QTcpSocket::disconnected,
-	//		 this,	 &TcpClient::reconnectToServer );
-
 	connect( socket, QOverload<QTcpSocket::SocketError>::of(&QTcpSocket::error),
 			 this,	 &TcpClient::showErrorAndReconnect);
 
@@ -33,9 +30,6 @@ void TcpClient::setPortNumber(quint16 n)	{ port_number = n; }
 void TcpClient::readData()
 {
 	qDebug() << "READ DATA";
-
-	//QByteArray buffer = socket->readLine();
-
 
 	packet_in = constructReceivedPacket(socket);
 
@@ -62,57 +56,6 @@ void TcpClient::readData()
 	QDataStream stream(&buffer, QIODevice::ReadWrite);
 	stream << *packet_in;
 	//qDebug() << buffer.toHex();
-
-/*
-	QDataStream in(socket);
-	in.setVersion(QDataStream::Qt_5_3);
-
-	qDebug() << "block_size = " << block_size;
-	if (block_size == 0)
-	{
-		qDebug() << "socket->bytesAvailable() = " << socket->bytesAvailable();
-		// Relies on the fact that QDataStream format streams a quint32 into sizeof(quint32) bytes
-		if (socket->bytesAvailable() < (int)sizeof(quint32))
-		{
-			qDebug() << "RET1";
-			return;
-		}
-		in >> block_size; // 4 bytes
-		in >> packet_type; // 1 byte
-		qDebug() << "new block_size = " << block_size;
-	}
-
-	if (socket->bytesAvailable() < block_size || in.atEnd())
-	{
-		qDebug() << "RET2" << socket->bytesAvailable() << " " << block_size;
-		return;
-	}
-
-	QByteArray block;
-	//in >> block;
-	char *temp = new char[block_size];
-	quint32 bytes_read = in.readRawData(temp, block_size);
-	block.append(temp, bytes_read);
-	delete [] temp;
-
-
-	qDebug() << block.toHex();
-
-	block_size -= bytes_read;
-
-
-
-
-
-	//QByteArray ba;
-	//in >> ba;
-
-	//ba.resize(100);
-	//in.readRawData(ba.data(), 100);
-
-	//qDebug() << ba; */
-
-	//QTimer::singleShot(2000, this, &TcpClient::sendData);
 }
 void TcpClient::sendData()
 {
@@ -128,29 +71,6 @@ void TcpClient::sendData()
 
 	packets_sent++;
 	emit updateClientState(true, packets_sent, packets_received);
-	/*
-	static int i = 0;
-
-
-	QByteArray block;
-	QDataStream out(&block, QIODevice::WriteOnly);
-	out.setVersion(QDataStream::Qt_5_3);
-
-	out << (quint32)0;
-	out << (quint8)0;
-	out << i++;
-	out.device()->seek(0);
-	out << (quint32)(block.size() - sizeof(quint32) - sizeof(quint8));
-
-	socket->write(block);
-	socket->flush();
-
-
-	qDebug() << "SEND DATA " << block.toHex();
-
-	//socket->write( QStringLiteral("some command for robot %1").arg(i++).toStdString().c_str() );
-	//socket->flush();
-	*/
 }
 void TcpClient::sendString(const QString &str)
 {
@@ -184,14 +104,6 @@ void TcpClient::connectToServer()
 		}
 	}
 }
-/*
-void TcpClient::reconnectToServer()
-{
-	qDebug() << "RECONNECT!";
-	reconnect_timer.singleShot(0, this, &TcpClient::connectToServer);
-
-	// http://doc.qt.io/qt-5/qabstractsocket.html#error
-}*/
 void TcpClient::disconnectFromServer()
 {
 	qDebug() << "DISCONNECT";

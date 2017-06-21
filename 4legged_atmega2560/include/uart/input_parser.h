@@ -39,7 +39,6 @@ class Input
 	uint8_t start_i, end_i;
 	char *start_ptr, *end_ptr;
 	uint8_t servo_number;
-	// uint16_t servo_value;
 	float servo_value;
 	
 	State initial_state_Callback(Signal current_signal);
@@ -78,12 +77,10 @@ TMPL State IN::initial_state_Callback(Signal current_signal)
 
 	switch (current_signal) {
 		case servo_num_label_signal: {
-			//start_i++; !
 			start_ptr++;
 			}return servo_num_label_state;
 
 		case blank_signal: {
-			//start_i++; ! 
 			start_ptr++;
 			}return current_state;
 
@@ -100,28 +97,18 @@ TMPL State IN::servo_num_label_state_Callback(Signal current_signal)
 
 	switch (current_signal) {
 		case num_signal: {
-
-			//end_i = start_i; ! 
-			//while (isdigit(buffer[++end_i])); ! 
-
-			//char next_char = buffer[end_i];! 
-			//buffer[end_i] = '\0'; !
 			servo_number = strtoul(start_ptr, &start_ptr, 10);
-			//buffer[end_i] = next_char; !
-
-			//start_i = end_i; !
 
 			if(servo_number >= controller.getServoCount())
 				return error_state;
 			}return got_servo_num_state;
 
 		case blank_signal: {
-			//start_i++; !
 			start_ptr++;
 			}return current_state;
 
 		default:
-			return error_state; //error!
+			return error_state;
 	}
 }
 TMPL State IN::got_servo_num_state_Callback(Signal current_signal)
@@ -130,17 +117,15 @@ TMPL State IN::got_servo_num_state_Callback(Signal current_signal)
 
 	switch (current_signal) {
 		case servo_val_label_signal: {
-			//start_i++; !
 			start_ptr++;
 			}return servo_val_label_state;
 
 		case blank_signal: {
-			//start_i++; ! 
 			start_ptr++;
 			}return current_state;
 
 		default:
-			return error_state; //error!
+			return error_state;
 	}
 }
 TMPL State IN::servo_val_label_state_Callback(Signal current_signal)
@@ -149,18 +134,8 @@ TMPL State IN::servo_val_label_state_Callback(Signal current_signal)
 
 	switch (current_signal) {
 		case num_signal: {
-
-			//end_i = start_i;
-			//while (isdigit(buffer[++end_i]));
-
-			//char next_char = buffer[end_i];
-			//buffer[end_i] = '\0';
-			//servo_value = strtoul(&buffer[start_i], NULL, 10);
 			// remember that float==double==32bit in avr-gcc and strtof isn't defined in avr-libc
 			servo_value = strtod(start_ptr, &start_ptr);
-			//buffer[end_i] = next_char;
-
-			//start_i = end_i;
 			
 			// assign
 			controller.set()[servo_number] = controller.getServo()[servo_number].deg2Tick(servo_value);
@@ -168,12 +143,11 @@ TMPL State IN::servo_val_label_state_Callback(Signal current_signal)
 			}return initial_state;
 
 		case blank_signal: {
-			//start_i++; !
 			start_ptr++;
 			}return current_state;
 
 		default:
-			return error_state; //error!
+			return error_state;
 	}
 }
 
@@ -197,7 +171,6 @@ TMPL void IN::parse()
 	if (!no_error)
 		return;
 
-	//start_i = 0; !
 	start_ptr = buffer;
 	
 	State current_state = initial_state;

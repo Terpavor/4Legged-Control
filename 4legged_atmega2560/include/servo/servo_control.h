@@ -281,11 +281,6 @@ TMPL inline void S_C::pulse_start_handler()
 TMPL inline void S_C::pulse_continue_handler() // TIMER1_COMPA_vect
 {
 	// remember that OCF1B in TIFR1 is reset immediately after entering to ISR
-	/*
-	if(servo_idx+1 < servo_count)
-		OCR1B = servo_sorted[servo_idx+1]->tick;
-	_MemoryBarrier();
-	*/
 	
 	// set 0 to the current servo pin ( assume that pin is set to 1 in pulse_start_handler() )
 	pinFromPort(servo_sorted[servo_idx]->port_reg) = servo_sorted[servo_idx]->pin_bitmap; // toggle pin by PINx register

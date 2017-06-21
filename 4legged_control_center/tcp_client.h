@@ -55,7 +55,6 @@ public slots: // public - to use with lambda
 
 public slots:
 	void connectToServer();
-	//void reconnectToServer();
 	void disconnectFromServer();
 	void showErrorAndReconnect(QAbstractSocket::SocketError);
 };
